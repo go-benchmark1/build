@@ -1,0 +1,32 @@
+{$layout}
+
+<div class="first-menu">
+	<div class="ui menu text small blue">
+		<a class="item active" href="/cache">策略列表</a>
+		<a class="item" href="/cache/createPolicy">+添加新策略</a>
+	</div>
+
+	<div class="ui divider"></div>
+</div>
+
+{$template "menu_second"}
+
+<div v-if="!isRunning">
+	<button class="ui button primary" @click.prevent="run()">开始统计 &nbsp;<i class="icon refresh small"></i></button> &nbsp;  &nbsp; <p class="comment">建议不要在比较忙碌的时刻进行此操作，以免影响用户访问。</p>
+</div>
+<button class="ui button disabled" v-if="isRunning">统计中，请耐心等待...</button>
+
+<table class="ui table definition selectable" v-if="!isRunning && result != null">
+	<tr>
+		<td class="title">尺寸</td>
+		<td>{{result.size}}</td>
+	</tr>
+	<tr>
+		<td>Key数量</td>
+		<td>{{result.countKeys}}</td>
+	</tr>
+	<tr>
+		<td>单个Key平均尺寸</td>
+		<td>{{result.avgSize}}</td>
+	</tr>
+</table>

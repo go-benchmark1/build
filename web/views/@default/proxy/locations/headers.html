@@ -1,0 +1,17 @@
+{$layout}
+
+<!-- 检测配置更新 -->
+<proxy-change-notify-box></proxy-change-notify-box>
+
+{$var "header"}
+<script src="/_/@default/proxy/headers/@list.js" type="text/javascript"></script>
+<link rel="stylesheet" href="/_/@default/proxy/headers/@list.css" type="text/css"/>
+{$end}
+
+<div>
+    {$template "/proxy/menu"}
+
+    {$template "menu"}
+
+    {$template "/proxy/headers/list"}
+</div>

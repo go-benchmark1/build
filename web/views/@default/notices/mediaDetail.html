@@ -1,0 +1,261 @@
+{$layout}
+{$template "/code_editor"}
+
+<div class="ui menu text small blue">
+	<a href="/notices?read=0" class="item">未读通知<span> &nbsp;({{countUnread}})</span></a>
+	<a href="/notices?read=1" class="item">已读通知</a>
+	<a href="/notices/setting" class="item">级别</a>
+	<a href="/notices/medias" class="item active">媒介</a>
+</div>
+
+<div class="ui divider"></div>
+
+<div class="ui menu text blue tiny">
+	<a :href="'/notices/mediaDetail?mediaId=' + media.id" class="item active">媒介详情</a>
+	<a :href="'/notices/testMedia?mediaId=' + media.id" class="item">测试当前媒介</a>
+</div>
+
+<div class="ui divider"></div>
+
+<h3>媒介详情 <a :href="'/notices/updateMedia?mediaId=' + media.id + '&from=' + from">修改</a></h3>
+
+<table class="ui table definition selectable">
+	<tr>
+		<td>是否启用</td>
+		<td>
+			<span class="ui label tiny green" v-if="media.on">启用中</span>
+			<span class="ui label tiny" v-if="!media.on">未启用</span>
+		</td>
+	</tr>
+	<tr>
+		<td class="title">媒介名称</td>
+		<td>
+			{{media.name}}
+		</td>
+	</tr>
+	<tr>
+		<td>媒介ID</td>
+		<td>{{media.id}}</td>
+	</tr>
+	<tr>
+		<td class="color-border">类型</td>
+		<td>
+			{{mediaType.name}}
+			<p class="comment" v-html="mediaType.description"></p>
+		</td>
+	</tr>
+	<tbody v-if="media.type == 'email'">
+		<tr>
+			<td class="color-border">SMTP</td>
+			<td>
+				{{media.options.smtp}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">账号</td>
+			<td>
+				{{media.options.username}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">密码 *</td>
+			<td>
+				{{media.options.password}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">发送者Email</td>
+			<td>
+				<span v-if="media.options.from.length > 0">{{media.options.from}}</span>
+				<span v-if="media.options.from.length == 0" class="disabled">没有设置</span>
+			</td>
+		</tr>
+	</tbody>
+	<tbody v-if="media.type == 'webhook'">
+		<tr>
+			<td class="color-border">URL</td>
+			<td>
+				{{media.options.url}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">请求方法</td>
+			<td>
+				{{media.options.method}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">自定义Header</td>
+			<td>
+				<span v-if="media.options.headers == null || media.options.headers.length == 0" class="disabled">还没有自定义Header</span>
+				<div v-if="media.options.headers != null && media.options.headers.length > 0">
+					<span class="ui label small" v-for="header in media.options.headers">{{header.name}}:{{header.value}}</span>
+				</div>
+			</td>
+		</tr>
+		<tr v-if="media.options.contentType != null && media.options.contentType.length > 0">
+			<td class="color-border">
+				<span v-if="media.options.contentType == 'params'">自定义参数</span>
+				<span v-if="media.options.contentType == 'body'">自定义内容</span>
+			</td>
+			<td class="color-border">
+				<div v-if="media.options.contentType == 'params'">
+					<span v-if="media.options.params == null || media.options.params.length == 0" class="disabled">还没有自定义参数</span>
+					<div v-if="media.options.params != null && media.options.params.length > 0">
+						<span class="ui label small" v-for="param in media.options.params">{{param.name}}:{{param.value}}</span>
+					</div>
+				</div>
+				<div v-if="media.options.contentType == 'body'">
+					<xmp style="margin-top:0;margin-bottom:0">{{media.options.body}}</xmp>
+				</div>
+			</td>
+		</tr>
+	</tbody>
+	<tbody v-if="media.type == 'script'">
+		<tr>
+			<td class="color-border">脚本</td>
+			<td>
+				<span v-if="media.options.scriptType == 'path'">{{media.options.path}}</span>
+				<div id="script-code-editor" v-show="media.options.scriptType == 'code'"></div>
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">当前工作目录<em>（CWD）</em></td>
+			<td>
+				<span v-if="media.options.cwd.length > 0">{{media.options.cwd}}</span>
+				<span v-if="media.options.cwd.length == 0" class="disabled">没有设置</span>
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">环境变量<em>（ENV）</em></td>
+			<td>
+				<span v-if="media.options.env == null || media.options.env.length == 0" class="disabled">没有设置</span>
+				<div v-if="media.options.env != null && media.options.env.length > 0">
+					<span class="ui label small" v-for="(var1, index) in media.options.env">
+						<em>{{var1.name}}</em>: {{var1.value}}
+					</span>
+				</div>
+			</td>
+		</tr>
+	</tbody>
+	<tbody v-if="media.type == 'dingTalk'">
+		<tr>
+			<td class="color-border">Hook地址</td>
+			<td>{{media.options.webhookURL}}</td>
+		</tr>
+	</tbody>
+
+	<!-- 企业微信 -->
+	<tbody v-if="media.type == 'qyWeixin'">
+		<tr>
+			<td class="color-border">企业ID</td>
+			<td>
+				{{media.options.corporateId}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">应用AgentId</td>
+			<td>
+				{{media.options.agentId}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">应用Secret</td>
+			<td>
+				{{media.options.appSecret}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">内容文本格式</td>
+			<td>
+				<span v-if="media.options.textFormat == null">text</span>
+				{{media.options.textFormat}}
+			</td>
+		</tr>
+	</tbody>
+
+	<!-- 企业微信群机器人 -->
+	<tbody v-if="media.type == 'qyWeixinRobot'">
+		<tr>
+			<td class="color-border">Webhook地址</td>
+			<td>{{media.options.webhookURL}}</td>
+		</tr>
+		<tr>
+			<td class="color-border">内容文本格式</td>
+			<td>
+				<span v-if="media.options.textFormat == null">text</span>
+                {{media.options.textFormat}}
+			</td>
+		</tr>
+	</tbody>
+
+	<!-- 阿里云短信 -->
+	<tbody v-show="media.type == 'aliyunSms'">
+		<tr>
+			<td class="color-border">签名名称</td>
+			<td>
+				{{media.options.sign}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">模板CODE</td>
+			<td>
+				{{media.options.templateCode}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">模板变量 *</td>
+			<td>
+				<div v-if="media.options.variables != null">
+					<span class="ui label small" v-for="(var1, index) in media.options.variables">
+						<em>{{var1.name}}</em>: {{var1.value}}
+					</span>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">AccessKey ID</td>
+			<td>
+				{{media.options.accessKeyId}}
+			</td>
+		</tr>
+		<tr>
+			<td class="color-border">AccessKey Secret</td>
+			<td>
+				{{media.options.accessKeySecret}}
+			</td>
+		</tr>
+	</tbody>
+
+	<!-- Telegram机器人 -->
+	<tbody v-show="media.type == 'telegram'">
+		<tr>
+			<td class="color-border">机器人Token</td>
+			<td>{{media.options.token}}</td>
+		</tr>
+	</tbody>
+
+	<!-- TeaOS云短信 -->
+	<tbody v-show="media.type == 'teaSms'">
+		<tr>
+			<td class="color-border">AccessId</td>
+			<td>{{media.options.accessId}}</td>
+		</tr>
+		<tr>
+			<td class="color-border">AccessSecret</td>
+			<td>{{media.options.accessSecret}}</td>
+		</tr>
+	</tbody>
+
+	<tr v-if="media.rateMinutes > 0 || media.rateCount > 0">
+		<td>发送频率</td>
+		<td>
+			每 {{media.rateMinutes}} 分钟可以发送 {{media.rateCount}} 个通知
+		</td>
+	</tr>
+	<tr v-if="media.timeFrom.length > 0">
+		<td>发送时间段</td>
+		<td>{{media.timeFrom}} 到 {{media.timeTo}}</td>
+	</tr>
+</table>
+

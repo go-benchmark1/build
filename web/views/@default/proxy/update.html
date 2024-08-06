@@ -1,0 +1,18 @@
+{$layout}
+
+<!-- 拖动排序 -->
+{$var "header"}
+<script type="text/javascript" src="/js/sortable.min.js"></script>
+{$end}
+
+<div>
+    {$template "menu"}
+
+	{$if .isTCP}
+		{$template "update_tcp"}
+	{$else if .isForwardHTTP}
+		{$template "update_forward_http"}
+	{$else}
+		{$template "update_http"}
+	{$end}
+</div>

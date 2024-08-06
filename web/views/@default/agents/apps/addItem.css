@@ -1,0 +1,59 @@
+.tab-menu {
+    margin-bottom: 0 !important;
+}
+
+.text.menu {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.divider {
+    margin-top: 0 !important;
+}
+
+.table .label.tiny {
+    padding: 2px;
+}
+
+.threshold-box .label {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}
+
+.threshold-box .label em {
+    font-style: italic;
+    font-weight: bold;
+}
+
+.threshold-box .label var {
+    font-style: normal;
+    font-weight: normal;
+}
+
+.table var {
+    font-style: normal;
+}
+
+/** codemirror **/
+.CodeMirror {
+    border: 1px solid #eee;
+    height: auto !important;
+}
+
+.CodeMirror-vscrollbar {
+    width: 6px;
+    border-radius: 3px !important;
+}
+
+.CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+}
+
+/** 排序 **/
+.sortable-ghost {
+    background: #ddd !important;
+}
+
+.sortable-drag {
+    opacity: 0.1;
+}

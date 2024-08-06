@@ -1,0 +1,50 @@
+.tab-menu {
+    margin-bottom: 0 !important;
+}
+
+.main .menu.text {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.divider {
+    margin-bottom: 0 !important;
+}
+
+.info-box {
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.08);
+    line-height: 1.8;
+    font-size: 0.9em;
+}
+
+/** cipher suite **/
+.cipher-all-suites-box .label {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}
+
+.cipher-all-suites-box .label var {
+    font-weight: bold !important;
+}
+
+/** hsts **/
+.hsts-box {
+    margin-top: 0.5em;
+}
+
+.hsts-box .label {
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+}
+
+/** CA证书 **/
+.ca-certs-box .label {
+    margin-top: 0.4em !important;
+    margin-bottom: 0.4em !important;
+}
+
+.ca-certs-box .label {
+    color: #4183c4 !important;
+    font-weight: normal;
+}

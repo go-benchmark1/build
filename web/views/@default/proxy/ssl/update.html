@@ -1,0 +1,332 @@
+{$layout}
+
+<!-- 检测配置更新 -->
+<proxy-change-notify-box></proxy-change-notify-box>
+
+<!-- 拖动排序 -->
+{$var "header"}
+<script type="text/javascript" src="/js/sortable.min.js"></script>
+{$end}
+
+<div>
+    {$template "/proxy/menu"}
+
+	<p class="comment">提醒：HTTP2、证书等信息修改后，可能需要清空浏览器缓存后才能浏览效果。</p>
+
+	<!-- HTTPS 设置 -->
+    <form class="ui form" data-tea-action="/proxy/ssl/update" data-tea-success="submitSuccess">
+        <input type="hidden" name="serverId" :value="server.id"/>
+        <table class="ui table definition selectable">
+            <tr>
+                <td class="title">
+					<span v-if="isHTTP">是否开启HTTPS</span>
+					<span v-if="isTCP">是否开启TLS</span>
+				</td>
+                <td>
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="httpsOn" v-model="httpsOn"/>
+                        <label></label>
+                    </div>
+                </td>
+            </tr>
+			<tr>
+				<td>绑定网络地址<em>(listen)</em></td>
+				<td colspan="2">
+                    <span class="ui label small" v-for="(listen, arrayIndex) in server.ssl.listen" :class="{blue:arrayIndex == editingListenIndex}">{{listen}}
+                        <input type="hidden" name="listen" :value="listen"/> &nbsp;
+						<a href="" @click.prevent="editListen(arrayIndex)" title="修改"><i class="icon pencil"></i></a>
+                        <a href="" @click.prevent="removeListen(arrayIndex)" title="删除"><i class="icon remove"></i></a>
+                    </span>
+					<div class="ui fields inline" v-if="listenAdding" style="margin-top:0.8em">
+						<div class="ui field">
+							<input type="text" name="addingListenName" style="width:18em" maxlength="30" placeholder="绑定的网络地址，比如 0.0.0.0:443" @keyup.enter="confirmAddListen()" @keypress.enter.prevent="1" v-model="addingListenName" />
+						</div>
+						<div class="ui field">
+							<button class="ui button tiny" type="button" @click="confirmAddListen()">确定</button>
+							&nbsp; <a href="" @click.prevent="cancelListenAdding()">取消</a>
+						</div>
+					</div>
+					<div class="ui field" style="margin-top: 1em">
+						<button class="ui button tiny" type="button" @click="addListen()">+</button>
+					</div>
+					<p class="comment" style="padding-top:0;margin-top:0">要想通过服务器的所有IP地址都能访问到服务，可以将IP地址写成"0.0.0.0:端口"。</p>
+				</td>
+			</tr>
+			<tr v-if="isHTTP">
+				<td>启用HTTP/2</td>
+				<td>
+					<div class="ui checkbox">
+						<input type="checkbox" name="http2Enabled" value="1" v-model="http2Enabled"/>
+						<label></label>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<div class="ui tabular menu attached small" v-show="certs.length > 0">
+			<a href="" class="item" :class="{active:index == certIndex}" v-for="(cert, index) in certs" @click.prevent="certIndex = index">证书#{{index+1}}</a>
+		</div>
+		<div class="ui segment attached" v-for="(cert, index) in certs" v-show="certIndex == index">
+			<table class="ui table selectable definition">
+				<tbody>
+					<tr>
+						<td colspan="2" style="font-weight: normal;background: rgba(0,0,0,.05)">证书#{{index+1}}：
+							<a href="" title="移除此证书" class="op-link" @click.prevent="removeCert(index)"><i class="icon remove small"></i></a>
+							<input type="hidden" name="certIds" :value="cert.id"/>
+						</td>
+					</tr>
+					<tr>
+						<td class="title" nowrap="">证书#{{index+1}}说明</td>
+						<td>
+							<input type="text" name="certDescriptions" maxlength="200" v-model="cert.description" :id="'cert-descriptions-input-' + index"/>
+						</td>
+					</tr>
+					<tr>
+						<td>选择证书文件</td>
+						<td>
+							<div class="ui menu tabular small attached">
+								<a href="" class="item" :class="{active:cert.isShared}" @click.prevent="cert.isShared = true">从公用证书中选择</a>
+								<a href="" class="item" :class="{active:!cert.isLocal && !cert.isShared}" @click.prevent="cert.isLocal = false, cert.isShared = false">从本地上传</a>
+								<a href="" class="item" :class="{active:cert.isLocal && !cert.isShared}" @click.prevent="cert.isLocal = true, cert.isShared = false">指定证书文件路径</a>
+							</div>
+
+							<!-- 共享的证书 -->
+							<div class="ui segment attached" v-show="cert.isShared">
+
+								<div v-if="sharedCerts == null || sharedCerts.length == 0">暂时还没有公用的证书，可以在<a href="/proxy/certs">这里上传</a>。
+									<input type="hidden" name="sharedCertIds" value=""/>
+								</div>
+								<div v-if="sharedCerts != null && sharedCerts.length > 0">
+									<table class="ui table definition">
+										<tr>
+											<td class="title">选择一个公用证书</td>
+											<td>
+												<select class="ui dropdown" :name="'sharedCertIds' + index" v-model="cert.id">
+													<option v-for="sharedCert in sharedCerts" :value="sharedCert.id">{{sharedCert.summary}}</option>
+												</select>
+												<p class="comment">
+													<a href="/proxy/certs">更多证书可以在这里上传 &raquo;</a>
+												</p>
+											</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+
+							<!-- 上传的证书 -->
+							<div class="ui segment attached" v-show="!cert.isLocal && !cert.isShared">
+								<table class="ui table definition">
+									<!-- 上传的证书 -->
+									<tr>
+										<td class="title">证书#{{index+1}}文件<em>(Certificate)</em></td>
+										<td>
+											<span v-if="cert.certFile.length > 0">{{cert.certFile}}</span>
+
+											<input type="file" :name="'certFiles' + index" accept="application/x-pem-file, application/pkcs10, application/x-pkcs12, application/x-x509-user-cert, application/x-x509-ca-cert, application/pkix-cert" style="margin-top:0.8em"/>
+											<p class="comment">内容中通常含有"-----BEGIN CERTIFICATE-----"类似的信息。</p>
+										</td>
+									</tr>
+									<tr>
+										<td>证书#{{index+1}}私钥文件<em>(Private Key)</em></td>
+										<td>
+											<span v-if="cert.keyFile.length > 0">{{cert.keyFile}}</span>
+											<input type="file" :name="'keyFiles' + index" accept="application/pkcs8" style="margin-top:0.8em"/>
+											<p class="comment">内容中通常含有"-----BEGIN RSA PRIVATE KEY-----"类似的信息。</p>
+										</td>
+									</tr>
+								</table>
+							</div>
+
+							<!-- 本地的证书 -->
+							<div class="ui segment attached" v-show="cert.isLocal && !cert.isShared">
+								<table class="ui table definition">
+									<tr>
+										<td class="title">证书#{{index+1}}文件<em>(Certificate)</em></td>
+										<td>
+											<input type="text" name="certFilesPaths" v-model="cert.certFile"/>
+											<p class="comment">指定TeaWeb所在服务器上的证书文件路径，内容中通常含有"-----BEGIN CERTIFICATE-----"类似的信息。</p>
+										</td>
+									</tr>
+									<tr>
+										<td>证书#{{index+1}}私钥文件<em>(Private Key)</em></td>
+										<td>
+											<input type="text" name="keyFilesPaths" v-model="cert.keyFile"/>
+											<p class="comment">指定TeaWeb所在服务器上的证书私钥文件路径，内容中通常含有"-----BEGIN RSA PRIVATE KEY-----"类似的信息。</p>
+										</td>
+									</tr>
+								</table>
+							</div>
+
+							<input type="hidden" name="certIsLocal" :value="cert.isLocal ? 1 : 0" />
+							<input type="hidden" name="certIsShared" :value="cert.isShared ? 1 : 0"/>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<table class="ui table definition selectable">
+			<tr>
+				<td class="title">添加新证书</td>
+				<td>
+					<button class="ui button tiny" type="button" @click.prevent="addCert()">+</button>
+				</td>
+			</tr>
+		</table>
+
+		<table class="ui table selectable definition">
+			<tr>
+				<td colspan="2">
+					<a href="" v-if="!advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">更多选项 <i class="icon down angle"></i> </a>
+					<a href="" v-if="advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">收起选项 <i class="icon up angle"></i> </a>
+				</td>
+			</tr>
+			<tbody v-show="advancedOptionsVisible">
+				<tr>
+					<td class="title">TLS最低版本</td>
+					<td>
+						<select name="minVersion" v-model="minVersion" class="ui dropdown" style="width:6em">
+							<option v-for="version in versions" :value="version">{{version}}</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>加密算法套件<em>(CipherSuites)</em></td>
+					<td>
+						<div class="ui checkbox">
+							<input type="checkbox" name="cipherSuitesOn" value="1" v-model="cipherSuitesOn" />
+							<label>是否要自定义</label>
+						</div>
+
+						<div  v-show="cipherSuitesOn">
+							<div class="cipher-suites-box">
+								已添加套件({{selectedCipherSuites.length}})：
+								<div v-for="cipherSuite in selectedCipherSuites" class="ui label tiny">
+									<input type="hidden" name="cipherSuites" :value="cipherSuite"/>
+									<span v-html="formatCipherSuite(cipherSuite)"></span> &nbsp; <a href="" title="删除套件" @click.prevent="removeCipherSuite(cipherSuite)"><i class="icon remove"></i></a>
+									<a href="" title="拖动改变顺序"><i class="icon bars handle"></i></a>
+								</div>
+							</div>
+
+							<div style="font-size:0.9em">
+								<div class="ui divider"></div>
+								<span v-if="selectedCipherSuites.length > 0"><a href="" @click.prevent="clearCipherSuites()">[清除所有已选套件]</a> &nbsp; </span>
+								<a href="" @click.prevent="addBatchCipherSuites(modernCipherSuites)">[添加推荐套件]</a> &nbsp;
+								<a href="" @click.prevent="addBatchCipherSuites(intermediateCipherSuites)">[添加兼容套件]</a>
+								<div class="ui divider"></div>
+							</div>
+
+							<div class="cipher-all-suites-box">
+								<span v-if="selectedCipherSuites.length == 0">所有</span>可选套件({{cipherSuites.length}})：
+								<a href="" v-for="cipherSuite in cipherSuites" class="ui label tiny" title="点击添加到自定义套件中" @click.prevent="addCipherSuite(cipherSuite)" v-html="formatCipherSuite(cipherSuite)"></a>
+							</div>
+							<p class="comment">点击可选套件添加。</p>
+						</div>
+					</td>
+				</tr>
+				<tr v-if="isHTTP">
+					<td class="color-border">开启HSTS</td>
+					<td>
+						<div class="ui checkbox">
+							<input type="checkbox" name="hstsOn" v-model="hsts.on" value="1"/>
+							<label></label>
+						</div>
+						<p class="comment">开启后，会自动在响应Header中加入<span class="ui label small">Strict-Transport-Security: <var v-if="!hsts.on">...</var><var v-if="hsts.on">max-age={{hsts.maxAge}}</var><var v-if="hsts.on && hsts.includeSubDomains">; includeSubDomains</var><var v-if="hsts.on && hsts.preload">; preload</var></span>。<span v-if="hsts.on"><a href="" @click.prevent="showMoreHSTS()">修改<i class="icon angle" :class="{down:!hstsOptionsVisible, up:hstsOptionsVisible}"></i> </a></span></p>
+					</td>
+				</tr>
+				<tr v-show="hsts.on && hstsOptionsVisible">
+					<td class="color-border">HSTS有效时间<em>（max-age）</em></td>
+					<td>
+						<div class="ui fields inline">
+							<div class="ui field">
+								<input type="text" name="hstsMaxAge" v-model="hsts.maxAge" maxlength="10" size="10" @input="changeHSTSMaxAge()"/>
+							</div>
+							<div class="ui field">
+								秒
+							</div>
+							<div class="ui field">{{hsts.days}}天</div>
+						</div>
+						<p class="comment">
+							<a href="" @click.prevent="setHSTSMaxAge(31536000)" :class="{active:hsts.maxAge == 31536000}">[1年/365天]</a> &nbsp; &nbsp;
+							<a href="" @click.prevent="setHSTSMaxAge(15768000)" :class="{active:hsts.maxAge == 15768000}">[6个月/182.5天]</a> &nbsp;  &nbsp;
+							<a href="" @click.prevent="setHSTSMaxAge(2592000)"  :class="{active:hsts.maxAge == 2592000}">[1个月/30天]</a>
+						</p>
+					</td>
+				</tr>
+				<tr v-show="hsts.on && hstsOptionsVisible">
+					<td class="color-border">HSTS包含子域名<em>（includeSubDomains）</em></td>
+					<td>
+						<div class="ui checkbox">
+							<input type="checkbox" name="hstsIncludeSubDomains" value="1" v-model="hsts.includeSubDomains"/>
+							<label></label>
+						</div>
+					</td>
+				</tr>
+				<tr v-show="hsts.on && hstsOptionsVisible">
+					<td class="color-border">HSTS预加载<em>（preload）</em></td>
+					<td>
+						<div class="ui checkbox">
+							<input type="checkbox" name="hstsPreload" value="1" v-model="hsts.preload"/>
+							<label></label>
+						</div>
+					</td>
+				</tr>
+				<tr v-show="hsts.on && hstsOptionsVisible">
+					<td class="color-border">HSTS生效的域名</td>
+					<td colspan="2">
+						<div class="names-box">
+						<span class="ui label tiny" v-for="(domain, arrayIndex) in hsts.domains" :class="{blue:hstsDomainEditingIndex == arrayIndex}">{{domain}}
+							<input type="hidden" name="hstsDomains" :value="domain"/> &nbsp;
+							<a href="" @click.prevent="editHstsDomain(arrayIndex)" title="修改"><i class="icon pencil"></i></a>
+							<a href="" @click.prevent="removeHstsDomain(arrayIndex)" title="删除"><i class="icon remove"></i></a>
+						</span>
+						</div>
+						<div class="ui fields inline" v-if="hstsDomainAdding" style="margin-top:0.8em">
+							<div class="ui field">
+								<input type="text" name="addingHstsDomain" style="width:16em" maxlength="100" placeholder="域名，比如example.com" @keyup.enter="confirmAddHstsDomain()" @keypress.enter.prevent="1" v-model="addingHstsDomain" />
+							</div>
+							<div class="ui field">
+								<button class="ui button tiny" type="button" @click="confirmAddHstsDomain()">确定</button>
+								&nbsp; <a href="" @click.prevent="cancelHstsDomainAdding()">取消</a>
+							</div>
+						</div>
+						<div class="ui field" style="margin-top: 1em">
+							<button class="ui button tiny" type="button" @click="addHstsDomain()">+</button>
+						</div>
+						<p class="comment">如果没有设置域名的话，则默认支持所有的域名。</p>
+					</td>
+				</tr>
+
+				<!-- 客户端认证 -->
+				<tr>
+					<td>客户端认证方式</td>
+					<td>
+						<select name="clientAuthType" v-model="clientAuthType" class="ui dropdown" style="width:15em">
+							<option v-for="authType in clientAuthTypes" :value="authType.type">{{authType.name}}</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>客户端认证CA证书</td>
+					<td>
+						<span v-if="selectedCACerts.length == 0">暂时还没有选择CA证书，<a href="" @click.prevent="showCACerts()">选择证书<i class="icon angle" :class="{down:!caCertsVisible,up:caCertsVisible}"></i></a></span>
+
+						<div v-if="selectedCACerts.length > 0">已选择证书：
+							<span v-for="cert in selectedCACerts" class="ui label tiny"><a :href="'/proxy/certs/detail?certId=' + cert.id" title="点击查看证书详情">{{cert.description}}</a> <a href="" title="移除" @click.prevent="removeSelectedCACert(cert)"><i class="icon remove"></i></a>
+								<input type="hidden" name="caCertIds" :value="cert.id"/>
+							</span>
+							<a href="" @click.prevent="showCACerts()">选择证书<i class="icon angle" :class="{down:!caCertsVisible,up:caCertsVisible}"></i></a>
+						</div>
+						<div class="ca-certs-box" v-show="caCertsVisible">可选证书：
+							<span v-if="leftCACerts.length == 0">没有可选的证书</span>
+							<a href="" v-for="cert in leftCACerts" class="ui label tiny" title="点击选择" @click.prevent="selectCACert(cert)">{{cert.description}}</a>
+						</div>
+						<p class="comment">用来校验客户端证书以增强安全性，<a href="/proxy/certs">管理CA证书&raquo;</a></p>
+					</td>
+				</tr>
+			</tbody>
+        </table>
+
+        <button class="ui button primary" type="submit">保存</button>
+    </form>
+</div>

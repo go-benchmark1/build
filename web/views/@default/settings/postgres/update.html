@@ -1,0 +1,68 @@
+{$layout}
+
+<h3>PostgreSQL连接设置</h3>
+
+<p class="ui message warning" v-if="typeIsChanged">在不同类型的数据库之间切换需要重启TeaWeb服务。</p>
+
+<form class="ui form" data-tea-action="$" data-tea-success="saveSuccess" data-tea-fail="saveFail">
+	<table class="ui table definition selectable">
+		<tr>
+			<td class="title">数据库主机地址<em>（Host:Port）</em> *</td>
+			<td>
+				<input type="text" name="addr" v-model="dbAddr"/>
+				<p class="comment">类似于192.168.1.100:3306</p>
+			</td>
+		</tr>
+		<tr>
+			<td>用户名<em>（Username）</em></td>
+			<td>
+				<input type="text" name="username" v-model="dbUsername"/>
+			</td>
+		</tr>
+		<tr>
+			<td>密码<em>（Password）</em></td>
+			<td>
+				<input type="password" name="password" v-model="dbPassword"/>
+			</td>
+		</tr>
+		<tr>
+			<td>数据库名称 *</td>
+			<td>
+				<input type="text" name="dbName" value="teaweb" v-model="dbName"/>
+				<p class="comment">此数据库必须是存在的，而且需要有创建数据表、删除数据表、创建索引的权限</p>
+			</td>
+		</tr>
+		<tr>
+			<td>自动创建数据库</td>
+			<td>
+				<div class="ui checkbox">
+					<input type="checkbox" name="autoCreate" value="1" v-model="autoCreate"/>
+					<label></label>
+				</div>
+				<p class="comment">选中后，如果数据库不存在，在检查数据库时会尝试自动创建数据库。</p>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<a href="" v-if="!advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">更多选项 <i class="icon down angle"></i> </a>
+				<a href="" v-if="advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">收起选项 <i class="icon up angle"></i> </a>
+			</td>
+		</tr>
+		<tbody v-show="advancedOptionsVisible">
+			<tr>
+				<td>连接池最大尺寸</td>
+				<td>
+					<input type="text" name="poolSize" style="width:5em" v-model="config.poolSize" maxlength="4"/>
+					<p class="comment">0表示默认，根据PostgreSQL所在服务器的性能可以适当增加连接池，从而提升写日志的速度。建议在10-100之间选择。</p>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="ui message error" v-if="!dbTestResult.ok && !dbTestResult.isRunning && dbTestResult.message.length > 0">{{dbTestResult.message}}</div>
+	<div class="ui message success" v-if="dbTestResult.ok">测试成功，现在可以保存设置了。</div>
+	<div class="ui message" v-if="dbTestResult.isRunning">测试中...</div>
+
+	<button class="ui button primary" type="submit">保存设置</button> &nbsp; &nbsp;
+	<a href="" @click.prevent="testDB()">检查数据库</a>
+</form>

@@ -1,0 +1,21 @@
+{$layout}
+
+<!-- 检测配置更新 -->
+<proxy-change-notify-box></proxy-change-notify-box>
+
+<!-- 错误信息 -->
+<p class="ui message error" v-for="err in errs">
+	发生错误：{{err}}
+</p>
+
+<div>
+    {$template "menu"}
+
+   	{$if .isTCP}
+		{$template "detail_tcp"}
+    {$else if .isForwardHTTP}
+		{$template "detail_forward_http"}
+	{$else}
+		{$template "detail_http"}
+	{$end}
+</div>

@@ -1,0 +1,203 @@
+{$layout}
+
+<!-- 检测配置更新 -->
+<proxy-change-notify-box></proxy-change-notify-box>
+
+<div>
+	{$template "/proxy/menu"}
+	{$template "/proxy/locations/menu"}
+
+	<h3>修改访问控制</h3>
+
+	<form class="ui form" data-tea-action="$" data-tea-success="submitSuccess">
+		<input type="hidden" name="serverId" :value="server.id"/>
+		<input type="hidden" name="locationId" :value="location.id"/>
+
+		<!-- 流量控制 -->
+		<table class="ui table selectable">
+			<thead>
+			<tr>
+				<th colspan="2">流量控制</th>
+			</tr>
+			</thead>
+			<tr>
+				<td class="title">是否开启流量控制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficOn" value="1" v-model="trafficOn"/>
+						<label></label>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td class="title">总量控制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficTotalOn" value="1" v-model="trafficTotalOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficTotalOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficTotalTotal" v-model="policy.traffic.total.total" placeholder="总量" maxlength="11" class="number"/>
+						</div>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td>每秒钟调用限制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficSecondOn" value="1" v-model="trafficSecondOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficSecondOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficSecondTotal" placeholder="总量" maxlength="11" v-model="policy.traffic.second.total" class="number"/>
+						</div>
+						<div class="ui field">次/每</div>
+						<div class="ui field">
+							<input type="text" name="trafficSecondDuration" placeholder="间隔" maxlength="11" v-model="policy.traffic.second.duration" class="short-number"/>
+						</div>
+						<div class="ui field">秒</div>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td>每分钟调用限制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficMinuteOn" value="1" v-model="trafficMinuteOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficMinuteOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficMinuteTotal" v-model="policy.traffic.minute.total" placeholder="总量" maxlength="11" class="number"/>
+						</div>
+						<div class="ui field">次/每</div>
+						<div class="ui field">
+							<input type="text" name="trafficMinuteDuration" placeholder="间隔" maxlength="11" v-model="policy.traffic.minute.duration" class="short-number"/>
+						</div>
+						<div class="ui field">分钟</div>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td>每小时调用限制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficHourOn" value="1" v-model="trafficHourOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficHourOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficHourTotal" v-model="policy.traffic.hour.total" placeholder="总量" maxlength="11" class="number"/>
+						</div>
+						<div class="ui field">次/每</div>
+						<div class="ui field">
+							<input type="text" name="trafficHourDuration" placeholder="间隔" maxlength="11" v-model="policy.traffic.hour.duration" class="short-number"/>
+						</div>
+						<div class="ui field">小时</div>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td>每天调用限制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficDayOn" value="1" v-model="trafficDayOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficDayOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficDayTotal" v-model="policy.traffic.day.total" placeholder="总量" maxlength="11" class="number"/>
+						</div>
+						<div class="ui field">次/每</div>
+						<div class="ui field">
+							<input type="text" name="trafficDayDuration" placeholder="间隔" maxlength="11" v-model="policy.traffic.day.duration" class="short-number"/>
+						</div>
+						<div class="ui field">天</div>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="trafficOn">
+				<td>每月调用限制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="trafficMonthOn" value="1" v-model="trafficMonthOn"/>
+						<label>是否开启控制</label>
+					</div>
+					<div class="ui fields inline margin" v-if="trafficMonthOn">
+						<div class="ui field">总量：</div>
+						<div class="ui field">
+							<input type="text" name="trafficMonthTotal" v-model="policy.traffic.month.total" placeholder="总量" maxlength="11" class="number"/>
+						</div>
+						<div class="ui field">次/每</div>
+						<div class="ui field">
+							<input type="text" name="trafficMonthDuration" placeholder="间隔" maxlength="11" v-model="policy.traffic.month.duration" class="short-number"/>
+						</div>
+						<div class="ui field">月</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<!-- 安全控制 -->
+		<table class="ui table selectable">
+			<thead>
+			<tr>
+				<th colspan="2">安全控制</th>
+			</tr>
+			</thead>
+			<tr>
+				<td class="title">是否开启安全控制</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="accessOn" value="1" v-model="accessOn"/>
+						<label></label>
+					</div>
+				</td>
+			</tr>
+			<tr v-if="accessOn">
+				<td>是否开启白名单</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="accessAllowOn" value="1" v-model="accessAllowOn"/>
+						<label></label>
+					</div>
+					<p class="ui comment">如果开启了白名单，则只有在白名单上的IP才能访问。</p>
+				</td>
+			</tr>
+			<tr v-if="accessOn && accessAllowOn">
+				<td class="title">IP白名单</td>
+				<td>
+					<single-value-list prefix="accessAllowIP" :values="accessAllowIPs" value-name="IP地址"></single-value-list>
+					<p class="comment">IP支持星号（*）通配符，比如192.168.1.*，也支持192.168.1.1/24、192.168.1.100-192.168.1.200类似的IP范围。</p>
+				</td>
+			</tr>
+			<tr v-if="accessOn">
+				<td>是否开启黑名单</td>
+				<td>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="accessDenyOn" value="1" v-model="accessDenyOn"/>
+						<label></label>
+					</div>
+					<p class="ui comment">如果开启了黑名单，则在黑名单上的IP禁止访问。</p>
+				</td>
+			</tr>
+			<tr v-if="accessOn && accessDenyOn">
+				<td class="title">IP黑名单</td>
+				<td>
+					<single-value-list prefix="accessDenyIP" :values="accessDenyIPs" value-name="IP地址"></single-value-list>
+					<p class="comment">IP支持星号（*）通配符，比如192.168.1.*，也支持192.168.1.1/24、192.168.1.100-192.168.1.200类似的IP范围。</p>
+				</td>
+			</tr>
+		</table>
+
+		<button class="ui button primary" type="submit">保存</button>
+	</form>
+</div>

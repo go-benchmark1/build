@@ -1,0 +1,142 @@
+{$layout}
+
+<!-- 检测配置更新 -->
+<proxy-change-notify-box></proxy-change-notify-box>
+
+<!-- 错误信息 -->
+<p class="ui message error" v-for="err in errs" style="word-break: break-all">
+	发生错误：{{err}}
+</p>
+
+<div>
+    {$template "/proxy/menu"}
+	{$template "menu"}
+
+    <!-- HTTPS 设置 -->
+    <h3>配置信息 <a :href="'/proxy/ssl/update?serverId=' + server.id">修改</a></h3>
+
+	<p class="ui message error" v-if="errorMessages.length > 0" v-for="error in errorMessages" style="word-break: break-all">
+		发生错误：{{error}}
+	</p>
+
+	<p class="ui message warning" v-if="warningMessages.length > 0" v-for="warning in warningMessages">
+		提醒：<span v-html="warning"></span>
+	</p>
+
+	<table class="ui table selectable definition">
+        <tr>
+            <td class="title">
+				<span v-if="isHTTP">是否开启HTTPS</span>
+				<span v-if="isTCP">是否开启TLS</span>
+			</td>
+            <td>
+                <span class="ui label tiny green" v-if="server.ssl != null && server.ssl.on">已开启</span>
+                <span class="ui label tiny red" v-if="server.ssl == null || !server.ssl.on">未开启</span>
+				&nbsp; <a href="" style="font-size: 12px" v-if="server.ssl != null && (!server.on || !server.ssl.on)" @click.prevent="startHttps()">快速启动</a><a href="" style="font-size: 12px" v-if="server.ssl != null && (server.on && server.ssl.on)" @click.prevent="shutdownHttps()">快速关闭</a>
+            </td>
+        </tr>
+		<tr>
+			<td>绑定网络地址<em>(listen)</em></td>
+			<td colspan="2">
+				<a class="disabled" v-if="server.ssl == null || server.ssl.listen == null || server.ssl.listen.length == 0">[还没有绑定网络地址]</a>
+				<div v-if="server.ssl != null && server.ssl.listen != null">
+					<span class="ui label small" v-for="listen in server.ssl.listen">{{listen}}</span>
+				</div>
+			</td>
+		</tr>
+		<tr v-if="isHTTP">
+			<td>启用HTTP/2</td>
+			<td>
+				<span class="ui label tiny green" v-if="server.ssl == null || !server.ssl.http2Disabled">启用</span>
+				<span class="ui label tiny" v-if="server.ssl != null && server.ssl.http2Disabled">不启用</span>
+			</td>
+		</tr>
+		<tr>
+			<td>TLS最低版本</td>
+			<td>
+				<span v-if="server.ssl == null" class="disabled">还没有设置</span>
+				<span v-if="server.ssl != null">{{minVersion}}</span>
+			</td>
+		</tr>
+		<tr>
+			<td>加密算法套件<em>(CipherSuites)</em></td>
+			<td>
+				<span v-if="server.ssl == null || server.ssl.cipherSuites == null || server.ssl.cipherSuites.length == 0" class="disabled">使用默认的算法套件。</span>
+				<div v-if="server.ssl != null && server.ssl.cipherSuites != null && server.ssl.cipherSuites.length > 0" class="cipher-all-suites-box">
+					<span class="ui label tiny" v-for="cipherSuite in server.ssl.cipherSuites" v-html="formatCipherSuite(cipherSuite)"></span>
+				</div>
+			</td>
+		</tr>
+		<tr v-if="isHTTP">
+			<td>开启HSTS</td>
+			<td>
+				<div v-if="server.ssl != null && server.ssl.hsts != null">
+					<span v-if="server.ssl.hsts.on" class="green">已开启</span>
+					<div v-if="server.ssl.hsts.on" class="hsts-box">
+						<span class="ui label tiny">Strict-Transport-Security: max-age={{server.ssl.hsts.maxAge}}<var v-if="server.ssl.hsts.on && server.ssl.hsts.includeSubDomains">; includeSubDomains</var><var v-if="server.ssl.hsts.on && server.ssl.hsts.preload">; preload</var></span>
+						<span v-if="server.ssl.hsts.domains != null" v-for="domain in server.ssl.hsts.domains" class="ui label tiny">{{domain}}</span>
+					</div>
+					<span v-if="!server.ssl.hsts.on" class="disabled">未开启</span>
+				</div>
+				<span v-if="server.ssl == null || server.ssl.hsts == null" class="disabled">未开启</span>
+			</td>
+		</tr>
+
+		<!-- 客户端认证 -->
+		<tr>
+			<td>客户端认证方式</td>
+			<td>{{clientAuthTypeName}}</td>
+		</tr>
+		<tr>
+			<td>客户端认证CA证书</td>
+			<td>
+				<span v-if="clientCACerts.length == 0">暂时还没有选择CA证书</span>
+				<div class="ca-certs-box">
+					<a v-for="cert in clientCACerts" :href="'/proxy/certs/detail?certId=' + cert.id" class="ui label tiny" title="点击查看证书详情">{{cert.description}}</a>
+				</div>
+			</td>
+		</tr>
+	</table>
+
+	<div class="ui divider margin"></div>
+	<h3>证书<span>（{{certs.length}}个）</span></h3>
+
+	<div class="ui tabular menu attached small" v-show="certs.length > 0">
+		<a href="" class="item" :class="{active:index == certIndex}" v-for="(cert, index) in certs" @click.prevent="certIndex = index">证书#{{index+1}}</a>
+	</div>
+	<div class="ui segment attached" v-for="(cert, index) in certs" v-show="index == certIndex">
+		<table class="ui table selectable definition" >
+			<!-- 证书列表 -->
+			<tr>
+				<td colspan="2" style="font-weight: normal;;background: rgba(0,0,0,.05)">证书#{{index+1}}<span v-if="cert.config.description.length > 0" class="grey">（{{cert.config.description}}）</span><span v-if="cert.config.taskId.length > 0" class="grey">（ACME）</span> <a href="" v-if="!cert.config.isShared" @click.prevent="makeShared(cert.config.id)">[添加到SSL证书管理中]</a>：</td>
+			</tr>
+			<tr>
+				<td class="title">证书文件<em>(Certificate)</em></td>
+				<td>
+					<span v-if="cert.config.certFile.length > 0">{{cert.config.certFile}}</span>
+					<p style="margin-top:0.4em;margin-bottom:0.5em" v-if="cert.config.certFile.length > 0">
+						<a :href="'/proxy/ssl/downloadFile?serverId=' + server.id + '&file=' + cert.config.certFile" style="font-size:12px;">[下载]</a> &nbsp; <a :href="'/proxy/ssl/downloadFile?serverId=' + server.id + '&file=' + cert.config.certFile + '&view=1'" style="font-size:12px;" target="_blank" title="新窗口打开">[查看内容]</a>
+					</p>
+					<a class="disabled" v-if="cert.config.certFile.length == 0">[还没有上传证书文件]</a>
+
+					<div class="info-box" v-if="cert.info.length > 0">
+						<div class="ui field" v-for="(row, index) in cert.info" :style="{'font-style':(index == cert.info.length - 1) ? 'italic':''}">
+							<span :style="{'padding-left':(index * 20) + 'px' }"></span>{{row.subject}}
+							<span v-if="index == cert.info.length - 1" style="font-style: normal;"><br/>有效期：{{row.before}} - {{row.after}}</span>
+						</div>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>私钥文件<em>(Private Key)</em></td>
+				<td>
+					<span v-if="cert.config.keyFile.length > 0">{{cert.config.keyFile}}</span>
+					<p style="margin-top:0.4em" v-if="cert.config.keyFile.length > 0">
+						<a :href="'/proxy/ssl/downloadFile?serverId=' + server.id + '&file=' + cert.config.keyFile" style="font-size:12px;">[下载]</a> &nbsp; <a :href="'/proxy/ssl/downloadFile?serverId=' + server.id + '&file=' + cert.config.keyFile + '&view=1'" style="font-size:12px;" target="_blank" title="新窗口打开">[查看内容]</a>
+					</p>
+					<a class="disabled" v-if="cert.config.keyFile.length == 0">[还没有上传私钥文件]</a>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>

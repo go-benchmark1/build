@@ -1,0 +1,119 @@
+{$layout}
+
+<div v-if="action != 'switchType'">
+	<div class="ui menu text basic blue small">
+		<a href="/settings/mongo" class="item active">连接设置</a>
+		<a href="/settings/mongo/data" class="item">数据清理</a>
+	</div>
+	<div class="ui divider"></div>
+</div>
+
+<div>
+    <h3>MongoDB连接设置 <a href="https://docs.mongodb.com/manual/reference/connection-string/" target="_blank">MongoDB官方说明文档</a> </h3>
+
+	<p class="ui message warning" v-if="typeIsChanged">在不同类型的数据库之间切换需要重启TeaWeb服务。</p>
+
+    <form class="ui form" data-tea-action=".update">
+        <table class="ui table definition selectable">
+            <tr>
+                <td style="width:11em">主机地址<em>（host）</em></td>
+                <td>
+                    <input type="text" name="host" v-model="config.host"/>
+                    <p class="comment">通常是一个IP，比如 192.168.1.100</p>
+                </td>
+            </tr>
+            <tr>
+                <td>端口<em>（port）</em></td>
+                <td>
+                    <input type="text" name="port" v-model="config.port"/>
+                </td>
+            </tr>
+			<tr>
+				<td>数据库名</td>
+				<td>
+					<input type="text" name="dbName" v-model="config.dbName"/>
+				</td>
+			</tr>
+            <tr>
+                <td>开启认证</td>
+				<td>
+					<div class="ui checkbox">
+						<input type="checkbox" name="authEnabled" value="1" v-model="config.authEnabled" />
+						<label></label>
+					</div>
+					<p class="comment">
+						<a href="http://teaos.cn/doc/settings/MongoDB.md#%E8%AE%A4%E8%AF%81" target="_blank">MongoDB认证相关帮助 &raquo;</a>
+					</p>
+				</td>
+            </tr>
+			<tbody v-if="config.authEnabled">
+				<tr>
+					<td>用户名<em>（username）</em></td>
+					<td>
+						<input type="text" name="username" v-model="config.username" maxlength="128"/>
+					</td>
+				</tr>
+				<tr>
+					<td>密码<em>（password）</em></td>
+					<td>
+						<input type="password" name="password" v-model="config.password" maxlength="128"/>
+						<p class="comment">留空表示不修改</p>
+					</td>
+				</tr>
+				<tr>
+					<td>认证机制<em>（Auth Mechanism）</em></td>
+					<td>
+						<select class="ui dropdown" name="authMechanism" v-model="config.authMechanism" style="width:11em">
+
+							<option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
+							<option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>认证附加参数<em>(Auth Mechanism Properties)</em></td>
+					<td>
+						<input type="text" name="authMechanismProperties" v-model="config.authMechanismProperties"/>
+						<p class="comment">通常为空即可。多个参数用英文逗号隔开，比如：CANONICALIZE_HOST_NAME:true,SERVICE_REALM:tea</p>
+					</td>
+				</tr>
+			</tbody>
+			<tr>
+				<td colspan="2">
+					<a href="" v-if="!advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">更多选项 <i class="icon down angle"></i> </a>
+					<a href="" v-if="advancedOptionsVisible" @click.prevent="showAdvancedOptions()" style="font-weight:normal">收起选项 <i class="icon up angle"></i> </a>
+				</td>
+			</tr>
+			<tbody v-show="advancedOptionsVisible">
+				<tr>
+					<td>连接池最大尺寸</td>
+					<td>
+						<input type="text" name="poolSize" style="width:5em" v-model="config.poolSize" maxlength="4"/>
+						<p class="comment">0表示默认，根据MongoDB所在服务器的性能可以适当增加连接池，从而提升写日志的速度。建议在10-100之间选择。</p>
+					</td>
+				</tr>
+				<tr>
+					<td>连接超时时间</td>
+					<td>
+						<div class="ui fields inline">
+							<div class="ui field">
+								<input type="text" name="timeout" style="width:5em" v-model="config.timeout" maxlength="4"/>
+							</div>
+							<div class="ui field">秒</div>
+						</div>
+						<p class="comment">0表示默认。</p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+
+        <div class="ui segment red" v-if="testingError != null && testingError.length > 0">{{testingError}}</div>
+        <div class="ui segment green" v-if="testingSuccess != null && testingSuccess.length > 0">{{testingSuccess}}</div>
+
+        <button class="ui button primary" type="submit">保存</button> &nbsp; &nbsp;
+        <button class="ui button" type="button" v-on:click="testConnection()" v-if="!isTesting">测试连接</button>
+        <button class="ui button" type="button" v-if="isTesting">测试中...</button>
+    </form>
+
+
+</div>

@@ -1,0 +1,34 @@
+.menu.text {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.ui.divider {
+    margin-top: 0 !important;
+}
+
+.table .label.tiny {
+    padding: 3px;
+    font-size: 0.6em !important;
+}
+
+/** 排序 **/
+.sortable-ghost {
+    background: #ddd !important;
+}
+
+.sortable-drag {
+    opacity: 1.0;
+}
+
+.icon.handle {
+    cursor: pointer;
+}
+
+span.large {
+    font-size: 2em;
+}
+
+span var {
+    font-style: normal;
+}
